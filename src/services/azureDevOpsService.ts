@@ -1,6 +1,8 @@
 import type { AzureUser, GitRef, GitCommit, WorkItem } from '../types/azureTypes';
 import { retryAsync } from '../utils/retryUtils';
 
+// Azure DevOps Configuration
+// TODO: Move these to environment variables for better configurability
 const AZURE_DEVOPS_ORG = 'CCPharmacyBuild';
 const AZURE_DEVOPS_PROJECT = 'CCPharmacyBuild';
 const API_VERSION = '7.0';
@@ -193,10 +195,9 @@ export class AzureDevOpsService {
     const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
 
     await retryAsync(async () => {
-      await fetch(url, {
+      await this.fetch(url, {
         method: 'PATCH',
         headers: {
-          ...this.getHeaders(),
           'Content-Type': 'application/json-patch+json',
         },
         body: JSON.stringify([
