@@ -12,19 +12,18 @@ import {
 } from '@mui/material';
 import { useAppStore } from './stores/appStore';
 import { AuthStep } from './components/AuthStep';
-import { RepoSelector } from './components/RepoSelector';
-import { VersionConfig } from './components/VersionConfig';
+import { RepoSelectorAndConfig } from './components/RepoSelectorAndConfig';
 import { ProcessingPanel } from './components/ProcessingPanel';
 import { ExportBar } from './components/ExportBar';
 
-const steps = ['Authentication', 'Select Repositories', 'Configure Versions'];
+const steps = ['Authentication', 'Select & Configure Repositories'];
 
 function App() {
   const { currentStep, setCurrentStep, isAuthenticated, repositories } = useAppStore();
 
   const selectedRepos = repositories.filter((r) => r.selected);
-  const canProceedFromStep1 = isAuthenticated;
-  const canProceedFromStep2 = selectedRepos.length > 0;
+  const canProceedFromStep0 = isAuthenticated;
+  const canProceedFromStep1 = selectedRepos.length > 0 && selectedRepos.every((r) => r.bumpType);
 
   const handleNext = () => {
     setCurrentStep(Math.min(currentStep + 1, steps.length - 1));
@@ -37,9 +36,9 @@ function App() {
   const canGoNext = () => {
     switch (currentStep) {
       case 0:
-        return canProceedFromStep1;
+        return canProceedFromStep0;
       case 1:
-        return canProceedFromStep2;
+        return canProceedFromStep1;
       default:
         return false;
     }
@@ -71,8 +70,7 @@ function App() {
 
         <Box sx={{ mb: 10 }}>
           {currentStep === 0 && <AuthStep />}
-          {currentStep === 1 && <RepoSelector />}
-          {currentStep === 2 && <VersionConfig />}
+          {currentStep === 1 && <RepoSelectorAndConfig />}
         </Box>
 
         <ProcessingPanel />
