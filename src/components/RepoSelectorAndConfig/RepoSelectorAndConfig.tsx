@@ -20,16 +20,7 @@ import type { Repository, BumpType } from '../../types/azureTypes';
 
 // Predefined list of repositories
 const REPOSITORY_LIST = [
-  'CareConnect.Pharmacy',
-  'AdminService',
-  'AuthenticationService',
-  'BillingService',
-  'InventoryService',
-  'NotificationService',
-  'OrderService',
-  'PatientService',
-  'PharmacyService',
-  'PrescriptionService',
+  'TestPipelines',
 ];
 
 export const RepoSelectorAndConfig: React.FC = () => {
