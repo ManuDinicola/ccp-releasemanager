@@ -14,6 +14,9 @@ import { useAppStore } from '../../stores/appStore';
 import { AzureDevOpsService } from '../../services/azureDevOpsService';
 import type { Repository } from '../../types/azureTypes';
 
+// Default repository to use when no repositories are selected in settings
+const DEFAULT_REPOSITORY = 'TestPipelines';
+
 export const RepoSelector: React.FC = () => {
   const { patToken, repositories, setRepositories, updateRepository, selectedRepositoryNames } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +31,7 @@ export const RepoSelector: React.FC = () => {
       // Use selected repositories from settings, or fallback to default
       const repoList = selectedRepositoryNames.length > 0 
         ? selectedRepositoryNames 
-        : ['TestPipeline'];
+        : [DEFAULT_REPOSITORY];
 
       const service = new AzureDevOpsService(patToken);
       const repos: Repository[] = [];
