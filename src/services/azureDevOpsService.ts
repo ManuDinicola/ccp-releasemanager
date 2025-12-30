@@ -54,6 +54,15 @@ export class AzureDevOpsService {
     });
   }
 
+  async getAllRepositories(): Promise<{ id: string; name: string }[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories?api-version=7.0`;
+    
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: { id: string; name: string }[] }>(url);
+      return response.value;
+    });
+  }
+
   async getRepositoryRefs(repositoryId: string): Promise<GitRef[]> {
     const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/refs?filter=heads/release&api-version=${API_VERSION}`;
     

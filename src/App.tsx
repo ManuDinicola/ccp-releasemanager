@@ -9,17 +9,22 @@ import {
   StepLabel,
   Button,
   Paper,
+  IconButton,
 } from '@mui/material';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { useState } from 'react';
 import { useAppStore } from './stores/appStore';
 import { AuthStep } from './components/AuthStep';
 import { RepoSelectorAndConfig } from './components/RepoSelectorAndConfig';
 import { ProcessingPanel } from './components/ProcessingPanel';
 import { ExportBar } from './components/ExportBar';
+import { SettingsMenu } from './components/SettingsMenu';
 
 const steps = ['Authentication', 'Select & Configure Repositories'];
 
 function App() {
   const { currentStep, setCurrentStep, isAuthenticated, repositories } = useAppStore();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selectedRepos = repositories.filter((r) => r.selected);
   const canProceedFromStep0 = isAuthenticated;
@@ -51,11 +56,21 @@ function App() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Release Manager - Visual Release Orchestrator
           </Typography>
+          <IconButton
+            color="inherit"
+            onClick={() => setSettingsOpen(true)}
+            disabled={!isAuthenticated}
+            sx={{ mr: 2 }}
+          >
+            <SettingsIcon />
+          </IconButton>
           <Typography variant="body2">
             v1.0.0
           </Typography>
         </Toolbar>
       </AppBar>
+
+      <SettingsMenu open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
         <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
