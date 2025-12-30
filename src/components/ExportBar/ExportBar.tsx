@@ -54,9 +54,9 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
       try {
         const newVersion = calculateNewVersion(repo.currentVersion, repo.bumpType!);
         const branchName = `refs/heads/release/${newVersion}.x`;
-        const newTagName = `v${newVersion}`;
+        const newTagName = `${newVersion}`;
         const oldTagName = repo.currentVersion && repo.currentVersion !== 'No releases' 
-          ? `v${repo.currentVersion}` 
+          ? `${repo.currentVersion}` 
           : null;
         
         // Step 1: Get the commit ID from main branch (before creating release branch)
