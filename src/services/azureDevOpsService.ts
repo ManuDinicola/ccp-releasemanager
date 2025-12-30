@@ -3,9 +3,9 @@ import { retryAsync } from '../utils/retryUtils';
 
 // Azure DevOps Configuration
 // TODO: Move these to environment variables for better configurability
-const AZURE_DEVOPS_ORG = 'CCPharmacyBuild';
+const AZURE_DEVOPS_ORG = 'corilusnv';
 const AZURE_DEVOPS_PROJECT = 'CCPharmacyBuild';
-const API_VERSION = '7.0';
+const API_VERSION = '7.1-preview.1';
 
 export class AzureDevOpsService {
   private baseUrl: string;
@@ -42,7 +42,7 @@ export class AzureDevOpsService {
   }
 
   async validateToken(): Promise<AzureUser> {
-    const url = `https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=${API_VERSION}`;
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/connectionData?api-version=${API_VERSION}`;
     
     return retryAsync(async () => {
       const response = await this.fetch<{ displayName: string; id: string; emailAddress: string }>(url);

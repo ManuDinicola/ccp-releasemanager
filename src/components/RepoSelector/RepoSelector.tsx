@@ -16,16 +16,7 @@ import type { Repository } from '../../types/azureTypes';
 
 // Predefined list of repositories
 const REPOSITORY_LIST = [
-  'CareConnect.Pharmacy',
-  'AdminService',
-  'AuthenticationService',
-  'BillingService',
-  'InventoryService',
-  'NotificationService',
-  'OrderService',
-  'PatientService',
-  'PharmacyService',
-  'PrescriptionService',
+  'TestPipeline'
 ];
 
 export const RepoSelector: React.FC = () => {
