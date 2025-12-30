@@ -10,7 +10,7 @@ import { AzureDevOpsService } from '../../services/azureDevOpsService';
 import { exportToCSV } from '../../services/csvExporter';
 import type { ReleaseNote, WorkItem } from '../../types/azureTypes';
 
-export const ExportBar: React.FC = () => {
+export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) => {
   const {
     patToken,
     repositories,
@@ -186,7 +186,7 @@ export const ExportBar: React.FC = () => {
         </Button>
       </Box>
 
-      {!canProcess && selectedRepos.length > 0 && (
+      {!canProcess && selectedRepos.length > 0 && currentStep >= 2 && (
         <Alert severity="warning" sx={{ mt: 2, maxWidth: 800, mx: 'auto' }}>
           Please configure version bump types for all selected repositories.
         </Alert>

@@ -96,7 +96,7 @@ function App() {
         </Paper>
       </Container>
 
-      <ExportBar />
+      <ExportBar currentStep={currentStep} />
     </Box>
   );
 }
