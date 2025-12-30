@@ -1,0 +1,212 @@
+import type { AzureUser, GitRef, GitCommit, WorkItem } from '../types/azureTypes';
+import { retryAsync } from '../utils/retryUtils';
+
+const AZURE_DEVOPS_ORG = 'CCPharmacyBuild';
+const AZURE_DEVOPS_PROJECT = 'CCPharmacyBuild';
+const API_VERSION = '7.0';
+
+export class AzureDevOpsService {
+  private baseUrl: string;
+  private patToken: string;
+
+  constructor(patToken: string) {
+    this.patToken = patToken;
+    this.baseUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}`;
+  }
+
+  private getHeaders(): HeadersInit {
+    const auth = btoa(`:${this.patToken}`);
+    return {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
+  private async fetch<T>(url: string, options: RequestInit = {}): Promise<T> {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...this.getHeaders(),
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  async validateToken(): Promise<AzureUser> {
+    const url = `https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=${API_VERSION}`;
+    
+    return retryAsync(async () => {
+      const response = await this.fetch<{ displayName: string; id: string; emailAddress: string }>(url);
+      return {
+        displayName: response.displayName,
+        id: response.id,
+        uniqueName: response.emailAddress,
+      };
+    });
+  }
+
+  async getRepositoryRefs(repositoryId: string): Promise<GitRef[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/refs?filter=heads/release&api-version=${API_VERSION}`;
+    
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: GitRef[] }>(url);
+      return response.value;
+    });
+  }
+
+  async getLatestReleaseVersion(repositoryId: string): Promise<string | null> {
+    try {
+      const refs = await this.getRepositoryRefs(repositoryId);
+      
+      // Find release branches (refs/heads/release/{version}.x)
+      const releaseBranches = refs
+        .filter((ref) => ref.name.startsWith('refs/heads/release/'))
+        .map((ref) => {
+          const match = ref.name.match(/refs\/heads\/release\/(\d+\.\d+)\.x/);
+          return match ? match[1] : null;
+        })
+        .filter((v): v is string => v !== null);
+
+      if (releaseBranches.length === 0) {
+        return null;
+      }
+
+      // Sort versions and return the latest
+      releaseBranches.sort((a, b) => {
+        const [aMajor, aMinor] = a.split('.').map(Number);
+        const [bMajor, bMinor] = b.split('.').map(Number);
+        return bMajor - aMajor || bMinor - aMinor;
+      });
+
+      return releaseBranches[0];
+    } catch (error) {
+      console.error(`Error fetching version for ${repositoryId}:`, error);
+      return null;
+    }
+  }
+
+  async createBranch(
+    repositoryId: string,
+    branchName: string,
+    sourceBranch: string = 'refs/heads/main'
+  ): Promise<GitRef> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/refs?api-version=${API_VERSION}`;
+
+    // First, get the commit ID of the source branch
+    const refsUrl = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/refs?filter=${sourceBranch.replace('refs/heads/', 'heads/')}&api-version=${API_VERSION}`;
+    const refs = await this.fetch<{ value: GitRef[] }>(refsUrl);
+    
+    if (refs.value.length === 0) {
+      throw new Error(`Source branch ${sourceBranch} not found`);
+    }
+
+    const sourceCommitId = refs.value[0].objectId;
+
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: GitRef[] }>(url, {
+        method: 'POST',
+        body: JSON.stringify([
+          {
+            name: branchName,
+            oldObjectId: '0000000000000000000000000000000000000000',
+            newObjectId: sourceCommitId,
+          },
+        ]),
+      });
+
+      return response.value[0];
+    });
+  }
+
+  async createTag(
+    repositoryId: string,
+    tagName: string,
+    commitId: string,
+    message: string
+  ): Promise<void> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/annotatedtags?api-version=${API_VERSION}`;
+
+    await retryAsync(async () => {
+      await this.fetch(url, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: tagName,
+          taggedObject: {
+            objectId: commitId,
+          },
+          message,
+        }),
+      });
+    });
+  }
+
+  async getCommitsBetweenBranches(
+    repositoryId: string,
+    baseBranch: string,
+    compareBranch: string
+  ): Promise<GitCommit[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${compareBranch}&searchCriteria.compareVersion.version=${baseBranch}&api-version=${API_VERSION}`;
+
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: GitCommit[] }>(url);
+      return response.value;
+    });
+  }
+
+  async getCommitWorkItems(
+    repositoryId: string,
+    commitId: string
+  ): Promise<string[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits/${commitId}/workitems?api-version=${API_VERSION}`;
+
+    try {
+      const response = await retryAsync(async () => {
+        return await this.fetch<{ value: { id: string }[] }>(url);
+      });
+
+      return response.value.map((item) => item.id);
+    } catch (error) {
+      console.error(`Error fetching work items for commit ${commitId}:`, error);
+      return [];
+    }
+  }
+
+  async getWorkItem(workItemId: string): Promise<WorkItem> {
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
+
+    return retryAsync(async () => {
+      return await this.fetch<WorkItem>(url);
+    });
+  }
+
+  async updateWorkItem(
+    workItemId: number,
+    integrationBuild: string
+  ): Promise<void> {
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
+
+    await retryAsync(async () => {
+      await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          ...this.getHeaders(),
+          'Content-Type': 'application/json-patch+json',
+        },
+        body: JSON.stringify([
+          {
+            op: 'add',
+            path: '/fields/Custom.IntegrationBuild',
+            value: integrationBuild,
+          },
+        ]),
+      });
+    });
+  }
+}
