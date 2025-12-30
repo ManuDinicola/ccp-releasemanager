@@ -1,0 +1,1 @@
+export { VersionConfig } from './VersionConfig';
