@@ -22,6 +22,16 @@ npm run dev
 
 ## Using the Application
 
+### Step 0: Configure Repository Selection (Optional)
+1. After successful authentication, click the Settings icon (gear icon) in the top right corner
+2. The Settings menu will load all available repositories from Azure DevOps
+3. Select/deselect repositories using checkboxes
+4. Use "Select All" / "Deselect All" for bulk actions
+5. Click "Save" to persist your selection (stored in browser localStorage)
+6. The selected repositories will be used in the repository selection step
+
+**Note:** If no repositories are selected in settings, the app will default to showing "TestPipelines".
+
 ### Step 1: Authentication
 1. Enter your Azure DevOps Personal Access Token in the password field
 2. Click "Validate Token" button
@@ -53,6 +63,12 @@ npm run dev
 
 ## Features
 
+### Settings Menu
+- **Dynamic Repository Selection**: Load all repositories from Azure DevOps and select which ones to manage
+- **Persistent Selection**: Your repository preferences are saved in browser localStorage
+- **Flexible Configuration**: Add or remove repositories without code changes
+- **Bulk Actions**: Quickly select or deselect all repositories
+
 ### Automatic Processing
 When you click "Process Releases", the app will:
 - Create release branches (e.g., refs/heads/release/1.1.x)
@@ -82,6 +98,12 @@ After export, the app automatically updates each work item's "Integration Build"
 - Verify repositories exist in Azure DevOps
 - Check that release branches follow the pattern: refs/heads/release/{version}.x
 - Confirm your PAT has Code Read permissions
+- If no repositories appear, use the Settings menu to select repositories first
+
+### Settings Not Saving
+- Ensure browser localStorage is enabled
+- Check that you have at least one repository selected before saving
+- Try clearing browser cache and localStorage, then reconfigure
 
 ### CORS Errors
 Azure DevOps API calls from browser may be blocked by CORS. Solutions:
@@ -97,7 +119,12 @@ Azure DevOps API calls from browser may be blocked by CORS. Solutions:
 
 ## Repository List
 
-The application works with these repositories:
+The application can work with any repositories in your Azure DevOps project. Use the Settings menu to select which repositories you want to manage.
+
+**Default repositories** (if none are selected in settings):
+- TestPipelines
+
+**Previously included repositories** (available via Settings menu):
 - CareConnect.Pharmacy (Main Application - used for CSV naming)
 - AdminService
 - AuthenticationService
