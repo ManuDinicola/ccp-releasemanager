@@ -12,7 +12,7 @@ import { useAppStore } from '../../stores/appStore';
 import { AzureDevOpsService } from '../../services/azureDevOpsService';
 
 export const AuthStep: React.FC = () => {
-  const { patToken, setPatToken, setUser, user } = useAppStore();
+  const { patToken, setPatToken, setUser, user, setCurrentStep } = useAppStore();
   const [localToken, setLocalToken] = useState(patToken);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +33,11 @@ export const AuthStep: React.FC = () => {
       setUser(validatedUser);
       setPatToken(localToken);
       setError(null);
+      
+      // Auto-navigate to next step after successful validation
+      setTimeout(() => {
+        setCurrentStep(1);
+      }, 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to validate token');
       setUser(null);

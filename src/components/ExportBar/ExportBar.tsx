@@ -186,7 +186,7 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
         </Button>
       </Box>
 
-      {!canProcess && selectedRepos.length > 0 && currentStep >= 2 && (
+      {!canProcess && selectedRepos.length > 0 && currentStep >= 1 && (
         <Alert severity="warning" sx={{ mt: 2, maxWidth: 800, mx: 'auto' }}>
           Please configure version bump types for all selected repositories.
         </Alert>
