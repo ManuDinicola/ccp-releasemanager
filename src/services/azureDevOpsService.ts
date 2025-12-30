@@ -63,6 +63,27 @@ export class AzureDevOpsService {
     });
   }
 
+  async getRepositoryTags(repositoryId: string): Promise<GitRef[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/refs?filter=tags&api-version=${API_VERSION}`;
+    
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: GitRef[] }>(url);
+      return response.value;
+    });
+  }
+
+  async getMainBranchCommit(repositoryId: string): Promise<string> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/refs?filter=heads/main&api-version=${API_VERSION}`;
+    
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: GitRef[] }>(url);
+      if (response.value.length === 0) {
+        throw new Error('Main branch not found');
+      }
+      return response.value[0].objectId;
+    });
+  }
+
   async getLatestReleaseVersion(repositoryId: string): Promise<string | null> {
     try {
       const refs = await this.getRepositoryRefs(repositoryId);
@@ -155,6 +176,29 @@ export class AzureDevOpsService {
     compareBranch: string
   ): Promise<GitCommit[]> {
     const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${compareBranch}&searchCriteria.compareVersion.version=${baseBranch}&api-version=${API_VERSION}`;
+
+    return retryAsync(async () => {
+      const response = await this.fetch<{ value: GitCommit[] }>(url);
+      return response.value;
+    });
+  }
+
+  async getCommitsBetweenTags(
+    repositoryId: string,
+    oldTag: string,
+    newTag: string
+  ): Promise<GitCommit[]> {
+    // Get the tag refs to find commit IDs
+    const tags = await this.getRepositoryTags(repositoryId);
+    
+    const oldTagRef = tags.find((t) => t.name === `refs/tags/${oldTag}`);
+    const newTagRef = tags.find((t) => t.name === `refs/tags/${newTag}`);
+    
+    if (!oldTagRef || !newTagRef) {
+      throw new Error(`Tags not found: ${oldTag} or ${newTag}`);
+    }
+
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newTagRef.objectId}&searchCriteria.compareVersion.version=${oldTagRef.objectId}&api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       const response = await this.fetch<{ value: GitCommit[] }>(url);

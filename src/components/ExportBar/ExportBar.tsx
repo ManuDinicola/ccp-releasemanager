@@ -54,64 +54,64 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
       try {
         const newVersion = calculateNewVersion(repo.currentVersion, repo.bumpType!);
         const branchName = `refs/heads/release/${newVersion}.x`;
+        const newTagName = `v${newVersion}`;
+        const oldTagName = repo.currentVersion && repo.currentVersion !== 'No releases' 
+          ? `v${repo.currentVersion}` 
+          : null;
         
-        // Create release branch
+        // Step 1: Get the commit ID from main branch (before creating release branch)
+        const mainCommitId = await service.getMainBranchCommit(repo.id);
+
+        // Step 2: Create release branch from main
         await service.createBranch(repo.id, branchName, 'refs/heads/main');
 
-        // Get the commit ID for the new branch
-        const refs = await service.getRepositoryRefs(repo.id);
-        const newBranchRef = refs.find((r) => r.name === branchName);
+        // Step 3: Create annotated tag on main branch
+        await service.createTag(
+          repo.id,
+          newTagName,
+          mainCommitId,
+          `Release ${newVersion}`
+        );
+
+        // Step 4: Get commits between tags for CSV (only if there's a previous tag)
+        const workItems: WorkItem[] = [];
         
-        if (newBranchRef) {
-          // Create annotated tag
-          await service.createTag(
-            repo.id,
-            `v${newVersion}`,
-            newBranchRef.objectId,
-            `Release ${newVersion}`
-          );
+        if (oldTagName) {
+          try {
+            const commits = await service.getCommitsBetweenTags(
+              repo.id,
+              oldTagName,
+              newTagName
+            );
 
-          // Get commits between old and new version
-          const workItems: WorkItem[] = [];
-          
-          if (repo.currentVersion && repo.currentVersion !== 'No releases') {
-            const oldBranchName = `refs/heads/release/${repo.currentVersion}.x`;
-            try {
-              const commits = await service.getCommitsBetweenBranches(
-                repo.id,
-                oldBranchName,
-                branchName
-              );
-
-              // Collect work items from commits
-              const workItemIds = new Set<string>();
-              for (const commit of commits) {
-                const ids = await service.getCommitWorkItems(repo.id, commit.commitId);
-                ids.forEach((id) => workItemIds.add(id));
-              }
-
-              // Fetch work item details
-              for (const id of workItemIds) {
-                try {
-                  const workItem = await service.getWorkItem(id);
-                  workItems.push(workItem);
-                  allWorkItems.push(workItem);
-                } catch (err) {
-                  console.error(`Error fetching work item ${id}:`, err);
-                }
-              }
-            } catch (err) {
-              console.error(`Error fetching commits for ${repo.name}:`, err);
+            // Collect work items from commits
+            const workItemIds = new Set<string>();
+            for (const commit of commits) {
+              const ids = await service.getCommitWorkItems(repo.id, commit.commitId);
+              ids.forEach((id) => workItemIds.add(id));
             }
-          }
 
-          addProcessingResult({
-            repository: repo.name,
-            success: true,
-            newVersion,
-            workItems,
-          });
+            // Fetch work item details
+            for (const id of workItemIds) {
+              try {
+                const workItem = await service.getWorkItem(id);
+                workItems.push(workItem);
+                allWorkItems.push(workItem);
+              } catch (err) {
+                console.error(`Error fetching work item ${id}:`, err);
+              }
+            }
+          } catch (err) {
+            console.error(`Error fetching commits between tags for ${repo.name}:`, err);
+          }
         }
+
+        addProcessingResult({
+          repository: repo.name,
+          success: true,
+          newVersion,
+          workItems,
+        });
       } catch (error) {
         addProcessingResult({
           repository: repo.name,
