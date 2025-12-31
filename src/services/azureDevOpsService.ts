@@ -190,6 +190,22 @@ export class AzureDevOpsService {
     });
   }
 
+  private async resolveTagCommitId(
+    repositoryId: string,
+    tagRef: GitRef,
+    tagName: string
+  ): Promise<string> {
+    try {
+      const tagObject = await this.getTagObject(repositoryId, tagRef.objectId);
+      return tagObject.taggedObject.objectId;
+    } catch (error) {
+      // If getting tag object fails, it might be a lightweight tag
+      // In that case, the objectId already points to the commit
+      console.error(`Failed to dereference tag ${tagName}, treating as lightweight tag:`, error);
+      return tagRef.objectId;
+    }
+  }
+
   async getCommitsBetweenBranches(
     repositoryId: string,
     baseBranch: string,
@@ -220,25 +236,8 @@ export class AzureDevOpsService {
 
     // Dereference annotated tags to get the actual commit IDs
     // For annotated tags, the objectId points to the tag object, not the commit
-    let oldCommitId = oldTagRef.objectId;
-    let newCommitId = newTagRef.objectId;
-
-    try {
-      const oldTagObject = await this.getTagObject(repositoryId, oldTagRef.objectId);
-      oldCommitId = oldTagObject.taggedObject.objectId;
-    } catch {
-      // If getting tag object fails, it might be a lightweight tag
-      // In that case, the objectId already points to the commit
-      console.log(`Old tag ${oldTag} might be a lightweight tag, using objectId directly`);
-    }
-
-    try {
-      const newTagObject = await this.getTagObject(repositoryId, newTagRef.objectId);
-      newCommitId = newTagObject.taggedObject.objectId;
-    } catch {
-      // If getting tag object fails, it might be a lightweight tag
-      console.log(`New tag ${newTag} might be a lightweight tag, using objectId directly`);
-    }
+    const oldCommitId = await this.resolveTagCommitId(repositoryId, oldTagRef, oldTag);
+    const newCommitId = await this.resolveTagCommitId(repositoryId, newTagRef, newTag);
 
     const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.compareVersion.version=${oldCommitId}&api-version=${API_VERSION}`;
 
