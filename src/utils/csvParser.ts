@@ -83,10 +83,10 @@ export function validateCsvFormat(csvContent: string): CsvValidationResult {
     errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
   }
 
-  // Check for optional Description column and warn if missing
+  // Check for optional Description column - note that descriptions will be auto-fetched if authenticated
   const hasDescription = headers.some((h) => h.toLowerCase() === 'description');
   if (!hasDescription) {
-    warnings.push('Optional column "Description" not found. AI summaries will be based on Content/Title only.');
+    warnings.push('Description column not found. Descriptions will be fetched from Azure DevOps if authenticated.');
   }
 
   // Validate data rows

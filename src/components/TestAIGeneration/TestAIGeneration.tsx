@@ -32,6 +32,8 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ScienceIcon from '@mui/icons-material/Science';
 import { aiService } from '../../services/aiService';
+import { AzureDevOpsService } from '../../services/azureDevOpsService';
+import { useAppStore } from '../../stores/appStore';
 import type { ReleaseContext } from '../../types/aiTypes';
 import {
   parseCsvToWorkItems,
@@ -52,11 +54,15 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
   open,
   onClose,
 }) => {
+  // Get PAT token from store for fetching descriptions
+  const { patToken, isAuthenticated } = useAppStore();
+
   // File upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [workItems, setWorkItems] = useState<WorkItemFromCsv[]>([]);
   const [validationResult, setValidationResult] = useState<CsvValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [isFetchingDescriptions, setIsFetchingDescriptions] = useState<boolean>(false);
 
   // AI generation state
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -110,6 +116,48 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
     }
   }, [open, checkOllama]);
 
+  // Fetch descriptions from Azure DevOps for work items missing descriptions
+  const fetchMissingDescriptions = async (items: WorkItemFromCsv[]): Promise<WorkItemFromCsv[]> => {
+    if (!isAuthenticated || !patToken) {
+      // If not authenticated, return items as-is with a warning
+      return items;
+    }
+
+    const itemsMissingDescription = items.filter((item) => !item.description);
+    if (itemsMissingDescription.length === 0) {
+      return items;
+    }
+
+    setIsFetchingDescriptions(true);
+    try {
+      const service = new AzureDevOpsService(patToken);
+      const workItemIds = itemsMissingDescription.map((item) => item.id.toString());
+      const fetchedWorkItems = await service.getWorkItemsBatch(workItemIds);
+
+      // Create a map of fetched descriptions
+      const descriptionMap = new Map<number, string>();
+      for (const wi of fetchedWorkItems) {
+        if (wi.fields['System.Description']) {
+          descriptionMap.set(wi.id, wi.fields['System.Description']);
+        }
+      }
+
+      // Update items with fetched descriptions
+      return items.map((item) => {
+        if (!item.description && descriptionMap.has(item.id)) {
+          return { ...item, description: descriptionMap.get(item.id) };
+        }
+        return item;
+      });
+    } catch (err) {
+      console.error('Error fetching descriptions from Azure DevOps:', err);
+      // Return items as-is if fetching fails
+      return items;
+    } finally {
+      setIsFetchingDescriptions(false);
+    }
+  };
+
   const processFile = async (file: File) => {
     if (!file.name.endsWith('.csv')) {
       setError('Please select a CSV file');
@@ -132,7 +180,9 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
       if (validation.isValid) {
         const result = parseCsvToWorkItems(content);
         if (result.success) {
-          setWorkItems(result.workItems);
+          // Fetch descriptions from Azure DevOps for items missing them
+          const itemsWithDescriptions = await fetchMissingDescriptions(result.workItems);
+          setWorkItems(itemsWithDescriptions);
         } else {
           setError(result.errors.join(', '));
         }
@@ -321,10 +371,12 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
             style={{ display: 'none' }}
           />
 
-          {isValidating ? (
+          {isValidating || isFetchingDescriptions ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
               <CircularProgress size={24} />
-              <Typography>Validating CSV...</Typography>
+              <Typography>
+                {isFetchingDescriptions ? 'Fetching descriptions from Azure DevOps...' : 'Validating CSV...'}
+              </Typography>
             </Box>
           ) : uploadedFile ? (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -362,8 +414,8 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
 
         {/* Validation warnings */}
         {validationResult?.warnings && validationResult.warnings.length > 0 && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2">Warnings:</Typography>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2">Notes:</Typography>
             <ul style={{ margin: 0, paddingLeft: 20 }}>
               {validationResult.warnings.slice(0, 5).map((warning, idx) => (
                 <li key={idx}>{warning}</li>
