@@ -5,7 +5,7 @@ import { retryAsync } from '../utils/retryUtils';
 // TODO: Move these to environment variables for better configurability
 const AZURE_DEVOPS_ORG = 'corilusnv';
 const AZURE_DEVOPS_PROJECT = 'CCPharmacyBuild';
-const API_VERSION = '7.1-preview.1';
+const API_VERSION = '7.2-preview';
 
 export class AzureDevOpsService {
   private baseUrl: string;
@@ -179,6 +179,33 @@ export class AzureDevOpsService {
     });
   }
 
+  async getTagObject(
+    repositoryId: string,
+    tagObjectId: string
+  ): Promise<{ taggedObject: { objectId: string } }> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/annotatedtags/${tagObjectId}?api-version=${API_VERSION}`;
+
+    return retryAsync(async () => {
+      return await this.fetch<{ taggedObject: { objectId: string } }>(url);
+    });
+  }
+
+  private async resolveTagCommitId(
+    repositoryId: string,
+    tagRef: GitRef,
+    tagName: string
+  ): Promise<string> {
+    try {
+      const tagObject = await this.getTagObject(repositoryId, tagRef.objectId);
+      return tagObject.taggedObject.objectId;
+    } catch (error) {
+      // If getting tag object fails, it might be a lightweight tag
+      // In that case, the objectId already points to the commit
+      console.error(`Failed to dereference tag ${tagName}, treating as lightweight tag:`, error);
+      return tagRef.objectId;
+    }
+  }
+
   async getCommitsBetweenBranches(
     repositoryId: string,
     baseBranch: string,
@@ -197,7 +224,7 @@ export class AzureDevOpsService {
     oldTag: string,
     newTag: string
   ): Promise<GitCommit[]> {
-    // Get the tag refs to find commit IDs
+    // Get the tag refs to find object IDs
     const tags = await this.getRepositoryTags(repositoryId);
     
     const oldTagRef = tags.find((t) => t.name === `refs/tags/${oldTag}`);
@@ -207,11 +234,34 @@ export class AzureDevOpsService {
       throw new Error(`Tags not found: ${oldTag} or ${newTag}`);
     }
 
-    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newTagRef.objectId}&searchCriteria.compareVersion.version=${oldTagRef.objectId}&api-version=${API_VERSION}`;
+    // Dereference annotated tags to get the actual commit IDs
+    // For annotated tags, the objectId points to the tag object, not the commit
+    const oldCommitId = await this.resolveTagCommitId(repositoryId, oldTagRef, oldTag);
+    const newCommitId = await this.resolveTagCommitId(repositoryId, newTagRef, newTag);
+
+    console.log(`Getting commits between tags: ${oldTag} (${oldCommitId}) and ${newTag} (${newCommitId})`);
+
+    // Get all commits from the new tag
+    // Then filter to only those that come after the old tag commit
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.itemVersion.versionType=commit&api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       const response = await this.fetch<{ value: GitCommit[] }>(url);
-      return response.value;
+      
+      // Filter commits to only include those after the old tag
+      // Find the index of the old commit and return everything before it (in reverse chronological order)
+      const oldCommitIndex = response.value.findIndex((c) => c.commitId === oldCommitId);
+      
+      if (oldCommitIndex === -1) {
+        // Old commit not found in the history, return all commits
+        console.log(`Old commit ${oldCommitId} not found in history, returning all ${response.value.length} commits`);
+        return response.value;
+      }
+      
+      // Return commits from index 0 to oldCommitIndex (exclusive)
+      const filteredCommits = response.value.slice(0, oldCommitIndex);
+      console.log(`Found ${filteredCommits.length} commits between tags (out of ${response.value.length} total)`);
+      return filteredCommits;
     });
   }
 
@@ -233,19 +283,57 @@ export class AzureDevOpsService {
     }
   }
 
+  async getPullRequestWorkItems(
+    repositoryId: string,
+    pullRequestId: string
+  ): Promise<string[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/pullrequests/${pullRequestId}/workitems?api-version=${API_VERSION}`;
+
+    try {
+      const response = await retryAsync(async () => {
+        return await this.fetch<{ value: { id: string }[] }>(url);
+      });
+
+      return response.value.map((item) => item.id);
+    } catch (error) {
+      console.error(`Error fetching work items for PR ${pullRequestId}:`, error);
+      return [];
+    }
+  }
+
   async getWorkItem(workItemId: string): Promise<WorkItem> {
-    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       return await this.fetch<WorkItem>(url);
     });
   }
 
+  async getWorkItemsBatch(workItemIds: string[]): Promise<WorkItem[]> {
+    if (workItemIds.length === 0) {
+      return [];
+    }
+
+    const idsString = workItemIds.join(',');
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems?ids=${idsString}\&$expand=relations&api-version=${API_VERSION}`;
+
+    try {
+      const response = await retryAsync(async () => {
+        return await this.fetch<{ value: WorkItem[] }>(url);
+      });
+      
+      return response.value || [];
+    } catch (error) {
+      console.error(`Error fetching work items batch:`, error);
+      return [];
+    }
+  }
+
   async updateWorkItem(
     workItemId: number,
     integrationBuild: string
   ): Promise<void> {
-    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
 
     await retryAsync(async () => {
       await this.fetch(url, {

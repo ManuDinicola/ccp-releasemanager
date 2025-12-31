@@ -87,18 +87,46 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
             // Collect work items from commits
             const workItemIds = new Set<string>();
             for (const commit of commits) {
-              const ids = await service.getCommitWorkItems(repo.id, commit.commitId);
-              ids.forEach((id) => workItemIds.add(id));
+              // First, check if the commit object already has work items
+              if (commit.workItems && commit.workItems.length > 0) {
+                commit.workItems.forEach((wi) => workItemIds.add(wi.id));
+              }
+              
+              // Check for merged PRs and get their work items via API
+              // Azure DevOps merge commits often have format: "Merged PR 12345: description"
+              const prMatch = commit.comment.match(/Merged PR (\d+)/i);
+              if (prMatch) {
+                const prId = prMatch[1];
+                try {
+                  const prWorkItems = await service.getPullRequestWorkItems(repo.id, prId);
+                  prWorkItems.forEach((id) => workItemIds.add(id));
+                } catch (err) {
+                  console.error(`Error fetching work items for PR ${prId}:`, err);
+                }
+              }
+              
+              // Also check for work item references like #12345 or AB#12345
+              const wiMatches = commit.comment.matchAll(/#(\d+)|AB#(\d+)/gi);
+              for (const match of wiMatches) {
+                const id = match[1] || match[2];
+                if (id) {
+                  workItemIds.add(id);
+                }
+              }
+              
+              // Note: Not using getCommitWorkItems() as it may not be available for all commits
+              // and the working PowerShell script doesn't use this API endpoint
             }
 
-            // Fetch work item details
-            for (const id of workItemIds) {
+            // Fetch work item details using batch API (matches PowerShell script)
+            const workItemIdsArray = Array.from(workItemIds);
+            if (workItemIdsArray.length > 0) {
               try {
-                const workItem = await service.getWorkItem(id);
-                workItems.push(workItem);
-                allWorkItems.push(workItem);
+                const fetchedWorkItems = await service.getWorkItemsBatch(workItemIdsArray);
+                workItems.push(...fetchedWorkItems);
+                allWorkItems.push(...fetchedWorkItems);
               } catch (err) {
-                console.error(`Error fetching work item ${id}:`, err);
+                console.error(`Error fetching work items for ${repo.name}:`, err);
               }
             }
           } catch (err) {
