@@ -1,4 +1,5 @@
 import type { OllamaRequest, OllamaResponse, OllamaModelsResponse, ReleaseContext } from '../types/aiTypes';
+import { stripHtmlTags } from '../utils/sanitizeUtils';
 
 const OLLAMA_BASE_URL = 'http://localhost:11434';
 const OLLAMA_API_GENERATE = `${OLLAMA_BASE_URL}/api/generate`;
@@ -66,10 +67,8 @@ export class AIService {
     const workItemsSection = Object.entries(workItemsByType)
       .map(([type, items]) => {
         const itemsList = items.map((i) => {
-          // Strip HTML tags from description if present
-          const cleanDescription = i.description 
-            ? i.description.replace(/<[^>]*>/g, '').trim()
-            : '';
+          // Strip HTML tags from description if present using secure utility
+          const cleanDescription = stripHtmlTags(i.description || '');
           const descriptionPart = cleanDescription 
             ? `\n    Description: ${cleanDescription}` 
             : '';
