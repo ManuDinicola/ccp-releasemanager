@@ -110,10 +110,7 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
     }
   }, [open, checkOllama]);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     if (!file.name.endsWith('.csv')) {
       setError('Please select a CSV file');
       return;
@@ -147,6 +144,12 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
     }
   };
 
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  };
+
   const handleClearFile = () => {
     setUploadedFile(null);
     setWorkItems([]);
@@ -171,18 +174,7 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
-      setError('Please drop a CSV file');
-      return;
-    }
-
-    // Simulate file input change
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    if (fileInputRef.current) {
-      fileInputRef.current.files = dataTransfer.files;
-      handleFileSelect({ target: fileInputRef.current } as React.ChangeEvent<HTMLInputElement>);
-    }
+    await processFile(file);
   };
 
   const buildContext = (): ReleaseContext => {
@@ -245,9 +237,11 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
     const blob = new Blob([generatedContent], { type: 'text/markdown;charset=utf-8' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const baseName = uploadedFile?.name.replace('.csv', '') || 'Test';
 
     link.setAttribute('href', url);
-    link.setAttribute('download', `TestReleaseNotes.md`);
+    link.setAttribute('download', `ReleaseNotes-${baseName}-${timestamp}.md`);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
