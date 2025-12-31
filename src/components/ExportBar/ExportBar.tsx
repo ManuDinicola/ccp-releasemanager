@@ -171,6 +171,7 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
       type: item.fields['System.WorkItemType'],
       id: item.id,
       title: item.fields['System.Title'],
+      description: item.fields['System.Description'],
       url: item.url,
     }));
 
