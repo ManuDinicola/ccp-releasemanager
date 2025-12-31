@@ -239,7 +239,8 @@ export class AzureDevOpsService {
     const oldCommitId = await this.resolveTagCommitId(repositoryId, oldTagRef, oldTag);
     const newCommitId = await this.resolveTagCommitId(repositoryId, newTagRef, newTag);
 
-    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.compareVersion.version=${oldCommitId}&api-version=${API_VERSION}`;
+    // Use commit version type when comparing by commit IDs
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.itemVersion.versionType=commit&searchCriteria.compareVersion.version=${oldCommitId}&searchCriteria.compareVersion.versionType=commit&api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       const response = await this.fetch<{ value: GitCommit[] }>(url);
