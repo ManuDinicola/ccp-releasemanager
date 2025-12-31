@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -5,12 +6,15 @@ import {
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAppStore } from '../../stores/appStore';
 import { AzureDevOpsService } from '../../services/azureDevOpsService';
 import { exportToCSV } from '../../services/csvExporter';
+import { ReleaseNotePreview } from '../ReleaseNotePreview';
 import type { ReleaseNote, WorkItem } from '../../types/azureTypes';
 
 export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) => {
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const {
     patToken,
     repositories,
@@ -188,7 +192,7 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
 
   return (
     <Box sx={{ position: 'sticky', bottom: 0, bgcolor: 'background.paper', borderTop: '1px solid #e0e0e0', p: 2 }}>
-      <Box sx={{ maxWidth: 800, mx: 'auto', display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ maxWidth: 1000, mx: 'auto', display: 'flex', gap: 2, alignItems: 'center' }}>
         <Button
           variant="contained"
           color="primary"
@@ -212,13 +216,32 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
         >
           Download CSV ({consolidatedWorkItems.length} items)
         </Button>
+
+        <Button
+          variant="contained"
+          color="secondary"
+          size="large"
+          startIcon={<AutoAwesomeIcon />}
+          onClick={() => setAiModalOpen(true)}
+          disabled={!hasResults || consolidatedWorkItems.length === 0 || isProcessing}
+          sx={{ flex: 1 }}
+        >
+          Generate AI Report
+        </Button>
       </Box>
 
       {!canProcess && selectedRepos.length > 0 && currentStep >= 1 && (
-        <Alert severity="warning" sx={{ mt: 2, maxWidth: 800, mx: 'auto' }}>
+        <Alert severity="warning" sx={{ mt: 2, maxWidth: 1000, mx: 'auto' }}>
           Please configure version bump types for all selected repositories.
         </Alert>
       )}
+
+      <ReleaseNotePreview
+        open={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        workItems={consolidatedWorkItems}
+        version={processingResults.find((r) => r.repository === 'CareConnect.Pharmacy')?.newVersion || mainVersion}
+      />
     </Box>
   );
 };
