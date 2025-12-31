@@ -283,6 +283,24 @@ export class AzureDevOpsService {
     }
   }
 
+  async getPullRequestWorkItems(
+    repositoryId: string,
+    pullRequestId: string
+  ): Promise<string[]> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/pullrequests/${pullRequestId}/workitems?api-version=${API_VERSION}`;
+
+    try {
+      const response = await retryAsync(async () => {
+        return await this.fetch<{ value: { id: string }[] }>(url);
+      });
+
+      return response.value.map((item) => item.id);
+    } catch (error) {
+      console.error(`Error fetching work items for PR ${pullRequestId}:`, error);
+      return [];
+    }
+  }
+
   async getWorkItem(workItemId: string): Promise<WorkItem> {
     const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
 
