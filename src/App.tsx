@@ -10,8 +10,10 @@ import {
   Button,
   Paper,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ScienceIcon from '@mui/icons-material/Science';
 import { useState } from 'react';
 import { useAppStore } from './stores/appStore';
 import { AuthStep } from './components/AuthStep';
@@ -19,12 +21,14 @@ import { RepoSelectorAndConfig } from './components/RepoSelectorAndConfig';
 import { ProcessingPanel } from './components/ProcessingPanel';
 import { ExportBar } from './components/ExportBar';
 import { SettingsMenu } from './components/SettingsMenu';
+import { TestAIGeneration } from './components/TestAIGeneration';
 
 const steps = ['Authentication', 'Select & Configure Repositories'];
 
 function App() {
   const { currentStep, setCurrentStep, isAuthenticated, repositories } = useAppStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [testAIOpen, setTestAIOpen] = useState(false);
 
   const selectedRepos = repositories.filter((r) => r.selected);
   const canProceedFromStep0 = isAuthenticated;
@@ -56,14 +60,25 @@ function App() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Release Manager - Visual Release Orchestrator
           </Typography>
-          <IconButton
-            color="inherit"
-            onClick={() => setSettingsOpen(true)}
-            disabled={!isAuthenticated}
-            sx={{ mr: 2 }}
-          >
-            <SettingsIcon />
-          </IconButton>
+          <Tooltip title="Test AI Generation">
+            <IconButton
+              color="inherit"
+              onClick={() => setTestAIOpen(true)}
+              sx={{ mr: 1 }}
+            >
+              <ScienceIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Settings">
+            <IconButton
+              color="inherit"
+              onClick={() => setSettingsOpen(true)}
+              disabled={!isAuthenticated}
+              sx={{ mr: 2 }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
           <Typography variant="body2">
             v1.0.0
           </Typography>
@@ -71,6 +86,7 @@ function App() {
       </AppBar>
 
       <SettingsMenu open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <TestAIGeneration open={testAIOpen} onClose={() => setTestAIOpen(false)} />
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
         <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
