@@ -114,9 +114,8 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
                 }
               }
               
-              // Fallback: try the API call to get linked work items
-              const ids = await service.getCommitWorkItems(repo.id, commit.commitId);
-              ids.forEach((id) => workItemIds.add(id));
+              // Note: Not using getCommitWorkItems() as it may not be available for all commits
+              // and the working PowerShell script doesn't use this API endpoint
             }
 
             // Fetch work item details
