@@ -302,7 +302,7 @@ export class AzureDevOpsService {
   }
 
   async getWorkItem(workItemId: string): Promise<WorkItem> {
-    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       return await this.fetch<WorkItem>(url);
@@ -313,7 +313,7 @@ export class AzureDevOpsService {
     workItemId: number,
     integrationBuild: string
   ): Promise<void> {
-    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems/${workItemId}?api-version=${API_VERSION}`;
 
     await retryAsync(async () => {
       await this.fetch(url, {
