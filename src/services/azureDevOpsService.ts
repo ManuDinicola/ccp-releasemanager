@@ -239,12 +239,29 @@ export class AzureDevOpsService {
     const oldCommitId = await this.resolveTagCommitId(repositoryId, oldTagRef, oldTag);
     const newCommitId = await this.resolveTagCommitId(repositoryId, newTagRef, newTag);
 
-    // Use commit version type when comparing by commit IDs
-    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.itemVersion.versionType=commit&searchCriteria.compareVersion.version=${oldCommitId}&searchCriteria.compareVersion.versionType=commit&api-version=${API_VERSION}`;
+    console.log(`Getting commits between tags: ${oldTag} (${oldCommitId}) and ${newTag} (${newCommitId})`);
+
+    // Get all commits from the new tag
+    // Then filter to only those that come after the old tag commit
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.itemVersion.versionType=commit&api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       const response = await this.fetch<{ value: GitCommit[] }>(url);
-      return response.value;
+      
+      // Filter commits to only include those after the old tag
+      // Find the index of the old commit and return everything before it (in reverse chronological order)
+      const oldCommitIndex = response.value.findIndex((c) => c.commitId === oldCommitId);
+      
+      if (oldCommitIndex === -1) {
+        // Old commit not found in the history, return all commits
+        console.log(`Old commit ${oldCommitId} not found in history, returning all ${response.value.length} commits`);
+        return response.value;
+      }
+      
+      // Return commits from index 0 to oldCommitIndex (exclusive)
+      const filteredCommits = response.value.slice(0, oldCommitIndex);
+      console.log(`Found ${filteredCommits.length} commits between tags (out of ${response.value.length} total)`);
+      return filteredCommits;
     });
   }
 
