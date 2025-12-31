@@ -5,7 +5,7 @@ import { retryAsync } from '../utils/retryUtils';
 // TODO: Move these to environment variables for better configurability
 const AZURE_DEVOPS_ORG = 'corilusnv';
 const AZURE_DEVOPS_PROJECT = 'CCPharmacyBuild';
-const API_VERSION = '7.1-preview.1';
+const API_VERSION = '7.2-preview';
 
 export class AzureDevOpsService {
   private baseUrl: string;
@@ -315,7 +315,7 @@ export class AzureDevOpsService {
     }
 
     const idsString = workItemIds.join(',');
-    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems?ids=${idsString}&$expand=relations&api-version=${API_VERSION}`;
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems?ids=${idsString}\&$expand=relations&api-version=${API_VERSION}`;
 
     try {
       const response = await retryAsync(async () => {
