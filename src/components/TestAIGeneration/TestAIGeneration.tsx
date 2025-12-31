@@ -354,7 +354,7 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
                 Drag and drop a CSV file here
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                or click to browse. Expected format: Type, ID, Title, URL
+                or click to browse. Expected format: Prefix, Id, Content, Url
               </Typography>
             </Box>
           )}
@@ -400,9 +400,9 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Type</TableCell>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Title</TableCell>
+                    <TableCell>Prefix</TableCell>
+                    <TableCell>Id</TableCell>
+                    <TableCell>Content</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

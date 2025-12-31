@@ -6,10 +6,10 @@ export function exportToCSV(
   mainVersion: string
 ): void {
   const csvData = releaseNotes.map((note) => ({
-    Type: note.type,
-    ID: note.id,
-    Title: note.title,
-    URL: note.url,
+    Prefix: note.type,
+    Id: note.id,
+    Content: note.title,
+    Url: note.url,
   }));
 
   const csv = Papa.unparse(csvData, {

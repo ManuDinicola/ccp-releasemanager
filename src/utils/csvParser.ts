@@ -13,12 +13,13 @@ export interface WorkItemFromCsv {
 /**
  * Expected CSV columns (matching the export format from csvExporter.ts)
  */
-const REQUIRED_COLUMNS = ['Type', 'ID', 'Title', 'URL'];
+const REQUIRED_COLUMNS = ['Prefix', 'Id', 'Content', 'Url'];
 
 /**
- * Valid work item types
+ * Valid work item types (Prefix values)
  */
 const VALID_WORK_ITEM_TYPES = [
+  'UserStory',
   'User Story',
   'Bug',
   'Task',
@@ -90,25 +91,25 @@ export function validateCsvFormat(csvContent: string): CsvValidationResult {
   data.forEach((row, index) => {
     const rowNum = index + 2; // +2 because header is row 1 and 0-indexed
 
-    // Check for required fields
-    const type = getFieldValue(row, 'Type');
-    const id = getFieldValue(row, 'ID');
-    const title = getFieldValue(row, 'Title');
+    // Check for required fields (using new column names: Prefix, Id, Content, Url)
+    const type = getFieldValue(row, 'Prefix');
+    const id = getFieldValue(row, 'Id');
+    const title = getFieldValue(row, 'Content');
 
     if (!type) {
-      errors.push(`Row ${rowNum}: Missing Type`);
+      errors.push(`Row ${rowNum}: Missing Prefix`);
     } else if (!VALID_WORK_ITEM_TYPES.some((t) => t.toLowerCase() === type.toLowerCase())) {
       warnings.push(`Row ${rowNum}: Unknown work item type "${type}"`);
     }
 
     if (!id) {
-      errors.push(`Row ${rowNum}: Missing ID`);
+      errors.push(`Row ${rowNum}: Missing Id`);
     } else if (isNaN(parseInt(id, 10))) {
-      errors.push(`Row ${rowNum}: Invalid ID "${id}" (must be a number)`);
+      errors.push(`Row ${rowNum}: Invalid Id "${id}" (must be a number)`);
     }
 
     if (!title) {
-      errors.push(`Row ${rowNum}: Missing Title`);
+      errors.push(`Row ${rowNum}: Missing Content`);
     }
   });
 
@@ -153,10 +154,10 @@ export function parseCsvToWorkItems(csvContent: string): CsvParseResult {
   const workItems: WorkItemFromCsv[] = [];
 
   for (const row of data) {
-    const type = getFieldValue(row, 'Type');
-    const idStr = getFieldValue(row, 'ID');
-    const title = getFieldValue(row, 'Title');
-    const url = getFieldValue(row, 'URL');
+    const type = getFieldValue(row, 'Prefix');
+    const idStr = getFieldValue(row, 'Id');
+    const title = getFieldValue(row, 'Content');
+    const url = getFieldValue(row, 'Url');
 
     const id = parseInt(idStr, 10);
     
