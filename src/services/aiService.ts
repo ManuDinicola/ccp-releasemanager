@@ -53,19 +53,28 @@ export class AIService {
    * Build a structured prompt for release note generation
    */
   private buildReleaseNotePrompt(context: ReleaseContext): string {
-    const workItemsByType: Record<string, { id: number; title: string }[]> = {};
+    const workItemsByType: Record<string, { id: number; title: string; description?: string }[]> = {};
     
     for (const item of context.workItemDetails) {
       const type = item.type || 'Other';
       if (!workItemsByType[type]) {
         workItemsByType[type] = [];
       }
-      workItemsByType[type].push({ id: item.id, title: item.title });
+      workItemsByType[type].push({ id: item.id, title: item.title, description: item.description });
     }
 
     const workItemsSection = Object.entries(workItemsByType)
       .map(([type, items]) => {
-        const itemsList = items.map((i) => `  - #${i.id}: ${i.title}`).join('\n');
+        const itemsList = items.map((i) => {
+          // Strip HTML tags from description if present
+          const cleanDescription = i.description 
+            ? i.description.replace(/<[^>]*>/g, '').trim()
+            : '';
+          const descriptionPart = cleanDescription 
+            ? `\n    Description: ${cleanDescription}` 
+            : '';
+          return `  - #${i.id}: ${i.title}${descriptionPart}`;
+        }).join('\n');
         return `${type}:\n${itemsList}`;
       })
       .join('\n\n');
@@ -91,7 +100,8 @@ IMPORTANT INSTRUCTIONS:
 - If a category has no items, omit that section entirely.
 - Use bullet points for each item.
 - Include the work item ID in the format #ID.
-- Write concise, user-friendly descriptions.
+- Use the description to write concise, user-friendly summaries that explain the value to users.
+- Transform technical descriptions into clear, benefit-focused statements.
 
 ${workItemsSection}
 

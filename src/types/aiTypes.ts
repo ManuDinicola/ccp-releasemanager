@@ -37,6 +37,7 @@ export interface ReleaseContext {
     id: number;
     type: string;
     title: string;
+    description?: string;
   }[];
   contributors: string[];
   version: string;

@@ -78,6 +78,7 @@ export const ReleaseNotePreview: React.FC<ReleaseNotePreviewProps> = ({
       id: item.id,
       type: item.fields['System.WorkItemType'],
       title: item.fields['System.Title'],
+      description: item.fields['System.Description'],
     }));
 
     return {
