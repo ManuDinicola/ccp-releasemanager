@@ -32,6 +32,7 @@ export interface WorkItem {
   fields: {
     'System.WorkItemType': string;
     'System.Title': string;
+    'System.Description'?: string;
     'System.State'?: string;
     'Custom.IntegrationBuild'?: string;
   };
