@@ -179,6 +179,17 @@ export class AzureDevOpsService {
     });
   }
 
+  async getTagObject(
+    repositoryId: string,
+    tagObjectId: string
+  ): Promise<{ taggedObject: { objectId: string } }> {
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/annotatedtags/${tagObjectId}?api-version=${API_VERSION}`;
+
+    return retryAsync(async () => {
+      return await this.fetch<{ taggedObject: { objectId: string } }>(url);
+    });
+  }
+
   async getCommitsBetweenBranches(
     repositoryId: string,
     baseBranch: string,
@@ -197,7 +208,7 @@ export class AzureDevOpsService {
     oldTag: string,
     newTag: string
   ): Promise<GitCommit[]> {
-    // Get the tag refs to find commit IDs
+    // Get the tag refs to find object IDs
     const tags = await this.getRepositoryTags(repositoryId);
     
     const oldTagRef = tags.find((t) => t.name === `refs/tags/${oldTag}`);
@@ -207,7 +218,29 @@ export class AzureDevOpsService {
       throw new Error(`Tags not found: ${oldTag} or ${newTag}`);
     }
 
-    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newTagRef.objectId}&searchCriteria.compareVersion.version=${oldTagRef.objectId}&api-version=${API_VERSION}`;
+    // Dereference annotated tags to get the actual commit IDs
+    // For annotated tags, the objectId points to the tag object, not the commit
+    let oldCommitId = oldTagRef.objectId;
+    let newCommitId = newTagRef.objectId;
+
+    try {
+      const oldTagObject = await this.getTagObject(repositoryId, oldTagRef.objectId);
+      oldCommitId = oldTagObject.taggedObject.objectId;
+    } catch {
+      // If getting tag object fails, it might be a lightweight tag
+      // In that case, the objectId already points to the commit
+      console.log(`Old tag ${oldTag} might be a lightweight tag, using objectId directly`);
+    }
+
+    try {
+      const newTagObject = await this.getTagObject(repositoryId, newTagRef.objectId);
+      newCommitId = newTagObject.taggedObject.objectId;
+    } catch {
+      // If getting tag object fails, it might be a lightweight tag
+      console.log(`New tag ${newTag} might be a lightweight tag, using objectId directly`);
+    }
+
+    const url = `${this.baseUrl}/_apis/git/repositories/${repositoryId}/commits?searchCriteria.itemVersion.version=${newCommitId}&searchCriteria.compareVersion.version=${oldCommitId}&api-version=${API_VERSION}`;
 
     return retryAsync(async () => {
       const response = await this.fetch<{ value: GitCommit[] }>(url);
