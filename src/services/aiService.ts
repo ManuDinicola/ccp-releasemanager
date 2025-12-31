@@ -135,7 +135,7 @@ Generate the release notes now:`;
       return data.response;
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Cannot connect to Ollama. Please ensure Ollama is running on localhost:11434 with OLLAMA_ORIGINS="*" set.');
+        throw new Error('Cannot connect to Ollama. Please ensure Ollama is running on localhost:11434. For browser-based requests, start Ollama with CORS enabled (development only): OLLAMA_ORIGINS="http://localhost:*" ollama serve');
       }
       throw error;
     }

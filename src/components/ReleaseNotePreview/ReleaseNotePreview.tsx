@@ -61,7 +61,7 @@ export const ReleaseNotePreview: React.FC<ReleaseNotePreviewProps> = ({
         setSelectedModel(preferredModel);
       }
     } else {
-      setError('Ollama is not running. Please start Ollama with OLLAMA_ORIGINS="*" ollama serve');
+      setError('Ollama is not running. Please start Ollama on localhost:11434 with CORS enabled for browser requests.');
     }
   }, [selectedModel]);
 
@@ -80,16 +80,10 @@ export const ReleaseNotePreview: React.FC<ReleaseNotePreviewProps> = ({
       title: item.fields['System.Title'],
     }));
 
-    // Extract unique contributors (if available in future)
-    const contributors: string[] = [];
-
-    // Generate PR titles from work items (simplified)
-    const prTitles: string[] = [];
-
     return {
-      prTitles,
+      prTitles: [],
       workItemDetails,
-      contributors,
+      contributors: [],
       version,
     };
   };
@@ -149,9 +143,11 @@ export const ReleaseNotePreview: React.FC<ReleaseNotePreviewProps> = ({
       <DialogContent>
         {!isOllamaAvailable && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            Ollama is not running. Please start Ollama on localhost:11434 with CORS enabled:
+            Ollama is not running. Please start Ollama on localhost:11434 with CORS enabled for browser requests.
             <br />
-            <code>OLLAMA_ORIGINS="*" ollama serve</code>
+            <Typography variant="caption" component="span" sx={{ display: 'block', mt: 1 }}>
+              Development only: <code>OLLAMA_ORIGINS="http://localhost:*" ollama serve</code>
+            </Typography>
             <Button 
               size="small" 
               startIcon={<RefreshIcon />} 
