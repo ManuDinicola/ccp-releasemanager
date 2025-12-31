@@ -118,14 +118,15 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
               // and the working PowerShell script doesn't use this API endpoint
             }
 
-            // Fetch work item details
-            for (const id of workItemIds) {
+            // Fetch work item details using batch API (matches PowerShell script)
+            const workItemIdsArray = Array.from(workItemIds);
+            if (workItemIdsArray.length > 0) {
               try {
-                const workItem = await service.getWorkItem(id);
-                workItems.push(workItem);
-                allWorkItems.push(workItem);
+                const fetchedWorkItems = await service.getWorkItemsBatch(workItemIdsArray);
+                workItems.push(...fetchedWorkItems);
+                allWorkItems.push(...fetchedWorkItems);
               } catch (err) {
-                console.error(`Error fetching work item ${id}:`, err);
+                console.error(`Error fetching work items for ${repo.name}:`, err);
               }
             }
           } catch (err) {

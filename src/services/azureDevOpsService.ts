@@ -309,6 +309,26 @@ export class AzureDevOpsService {
     });
   }
 
+  async getWorkItemsBatch(workItemIds: string[]): Promise<WorkItem[]> {
+    if (workItemIds.length === 0) {
+      return [];
+    }
+
+    const idsString = workItemIds.join(',');
+    const url = `https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems?ids=${idsString}&$expand=relations&api-version=${API_VERSION}`;
+
+    try {
+      const response = await retryAsync(async () => {
+        return await this.fetch<{ value: WorkItem[] }>(url);
+      });
+      
+      return response.value || [];
+    } catch (error) {
+      console.error(`Error fetching work items batch:`, error);
+      return [];
+    }
+  }
+
   async updateWorkItem(
     workItemId: number,
     integrationBuild: string
