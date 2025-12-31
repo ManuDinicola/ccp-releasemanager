@@ -9,6 +9,7 @@ export function exportToCSV(
     Prefix: note.type,
     Id: note.id,
     Content: note.title,
+    Description: note.description || '',
     Url: note.url,
   }));
 

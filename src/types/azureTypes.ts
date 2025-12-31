@@ -60,6 +60,7 @@ export interface ReleaseNote {
   id: number;
   title: string;
   url: string;
+  description?: string;
 }
 
 export type BumpType = 'major' | 'minor';

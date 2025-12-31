@@ -182,7 +182,7 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
       id: item.id,
       type: item.type,
       title: item.title,
-      description: undefined,
+      description: item.description,
     }));
 
     return {
@@ -354,7 +354,7 @@ export const TestAIGeneration: React.FC<TestAIGenerationProps> = ({
                 Drag and drop a CSV file here
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                or click to browse. Expected format: Prefix, Id, Content, Url
+                or click to browse. Expected format: Prefix, Id, Content, Description (optional), Url
               </Typography>
             </Box>
           )}

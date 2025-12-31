@@ -8,10 +8,12 @@ export interface WorkItemFromCsv {
   id: number;
   title: string;
   url: string;
+  description?: string;
 }
 
 /**
  * Expected CSV columns (matching the export format from csvExporter.ts)
+ * Description is optional but recommended for better AI summaries
  */
 const REQUIRED_COLUMNS = ['Prefix', 'Id', 'Content', 'Url'];
 
@@ -79,6 +81,12 @@ export function validateCsvFormat(csvContent: string): CsvValidationResult {
 
   if (missingColumns.length > 0) {
     errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+  }
+
+  // Check for optional Description column and warn if missing
+  const hasDescription = headers.some((h) => h.toLowerCase() === 'description');
+  if (!hasDescription) {
+    warnings.push('Optional column "Description" not found. AI summaries will be based on Content/Title only.');
   }
 
   // Validate data rows
@@ -158,6 +166,7 @@ export function parseCsvToWorkItems(csvContent: string): CsvParseResult {
     const idStr = getFieldValue(row, 'Id');
     const title = getFieldValue(row, 'Content');
     const url = getFieldValue(row, 'Url');
+    const description = getFieldValue(row, 'Description');
 
     const id = parseInt(idStr, 10);
     
@@ -167,6 +176,7 @@ export function parseCsvToWorkItems(csvContent: string): CsvParseResult {
         id,
         title,
         url: url || '',
+        description: description || undefined,
       });
     }
   }
