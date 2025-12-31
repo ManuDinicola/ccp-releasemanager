@@ -19,7 +19,9 @@ This application enables DevOps engineers and release managers to:
 - User profile display after authentication
 
 ### 📦 Repository Management
-- Predefined list of repositories
+- **Settings Menu**: Dynamic repository selection from Azure DevOps
+- **Flexible Configuration**: Select any repositories you want to manage
+- **Persistent Storage**: Selected repositories saved in localStorage
 - Automatic version fetching from release branches
 - Bulk selection controls
 - Real-time version display
@@ -95,16 +97,25 @@ npm run preview
 
 ## Usage
 
+### Step 0: Configure Repository Selection (Recommended)
+1. After authentication, click the Settings icon (⚙️) in the app header
+2. The Settings menu will fetch all available repositories from Azure DevOps
+3. Select the repositories you want to manage using checkboxes
+4. Use "Select All" / "Deselect All" for quick bulk actions
+5. Click "Save" to persist your selection (requires at least one repository)
+6. Your selection is saved in browser localStorage
+
 ### Step 1: Authentication
 1. Enter your Azure DevOps Personal Access Token
 2. Click "Validate Token"
 3. Verify your user profile is displayed
 
 ### Step 2: Select Repositories
-1. Review the list of repositories and their current versions
-2. Select repositories for release processing
-3. Use "Select All" for bulk selection
-4. Click "Next"
+1. Review the list of repositories (from your Settings selection or defaults)
+2. Current versions are automatically fetched for each repository
+3. Select repositories for release processing
+4. Use "Select All" for bulk selection
+5. Click "Next"
 
 ### Step 3: Configure Versions
 1. Choose Major or Minor bump for each selected repository
@@ -118,9 +129,19 @@ npm run preview
 3. Click "Download CSV" to export release notes
 4. Work items will be automatically updated with Integration Build version
 
-## Repository List
+## Repository Selection
 
-The application is configured to work with these repositories:
+The application now supports **dynamic repository selection** via the Settings menu:
+
+1. Click the Settings icon (⚙️) in the top-right corner after authentication
+2. All repositories from your Azure DevOps project will be loaded
+3. Select which repositories you want to manage
+4. Your selection persists in browser localStorage
+
+**Default repositories** (if none selected in settings):
+- TestPipelines
+
+**Example repositories** that may be available in your project:
 - CareConnect.Pharmacy (Main Application)
 - AdminService
 - AuthenticationService
@@ -131,6 +152,8 @@ The application is configured to work with these repositories:
 - PatientService
 - PharmacyService
 - PrescriptionService
+
+**Note**: The actual list depends on your Azure DevOps project configuration.
 
 ## Configuration
 
@@ -149,9 +172,11 @@ src/
 ├── components/          # React components
 │   ├── AuthStep/       # Authentication step
 │   ├── RepoSelector/   # Repository selection
+│   ├── RepoSelectorAndConfig/ # Combined repo selection & config
 │   ├── VersionConfig/  # Version configuration
 │   ├── ProcessingPanel/# Processing status display
-│   └── ExportBar/      # Export and process controls
+│   ├── ExportBar/      # Export and process controls
+│   └── SettingsMenu/   # Repository settings configuration
 ├── hooks/              # Custom React hooks (reserved)
 ├── services/           # API and utility services
 │   ├── azureDevOpsService.ts  # Azure DevOps API integration
@@ -198,6 +223,7 @@ Azure DevOps API calls from the browser may require CORS handling:
 - Confirm repository exists in Azure DevOps
 - Verify release branches follow naming convention: `refs/heads/release/{version}.x`
 - Check PAT token has Code Read permissions
+- **New**: Ensure repositories are selected in the Settings menu
 
 ### Processing Failures
 - Review error messages in Processing Panel
@@ -207,7 +233,7 @@ Azure DevOps API calls from the browser may require CORS handling:
 ## Future Enhancements
 
 Planned features for future versions:
-- Custom repository list configuration
+- ~~Custom repository list configuration~~ ✅ **Implemented in v1.0.0**
 - Patch version support
 - Release history viewing
 - Multi-project support

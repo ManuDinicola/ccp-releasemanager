@@ -10,6 +10,7 @@ export const useAppStore = create<AppState>()(
       user: null,
       isAuthenticated: false,
       repositories: [],
+      selectedRepositoryNames: [],
       isProcessing: false,
       processingResults: [],
       consolidatedWorkItems: [],
@@ -30,6 +31,8 @@ export const useAppStore = create<AppState>()(
           repo.name === name ? { ...repo, ...updates } : repo
         ),
       })),
+      
+      setSelectedRepositoryNames: (names) => set({ selectedRepositoryNames: names }),
       
       setCurrentStep: (step) => set({ currentStep: step }),
       
@@ -52,7 +55,8 @@ export const useAppStore = create<AppState>()(
     {
       name: 'release-manager-storage',
       partialize: (state) => ({ 
-        patToken: state.patToken // Only persist the PAT token
+        patToken: state.patToken, // Only persist the PAT token
+        selectedRepositoryNames: state.selectedRepositoryNames, // Persist selected repos
       }),
     }
   )

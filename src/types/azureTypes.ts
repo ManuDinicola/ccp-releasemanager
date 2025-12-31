@@ -71,6 +71,7 @@ export interface AppState {
   
   // Repositories
   repositories: Repository[];
+  selectedRepositoryNames: string[];
   
   // Processing
   isProcessing: boolean;
@@ -87,6 +88,7 @@ export interface AppState {
   setUser: (user: AzureUser | null) => void;
   setRepositories: (repos: Repository[]) => void;
   updateRepository: (name: string, updates: Partial<Repository>) => void;
+  setSelectedRepositoryNames: (names: string[]) => void;
   setCurrentStep: (step: number) => void;
   setIsProcessing: (processing: boolean) => void;
   addProcessingResult: (result: ReleaseProcessingResult) => void;

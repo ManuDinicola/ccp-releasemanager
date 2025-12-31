@@ -18,13 +18,11 @@ import { useAppStore } from '../../stores/appStore';
 import { AzureDevOpsService } from '../../services/azureDevOpsService';
 import type { Repository, BumpType } from '../../types/azureTypes';
 
-// Predefined list of repositories
-const REPOSITORY_LIST = [
-  'TestPipelines',
-];
+// Default repository to use when no repositories are selected in settings
+const DEFAULT_REPOSITORY = 'TestPipelines';
 
 export const RepoSelectorAndConfig: React.FC = () => {
-  const { patToken, repositories, setRepositories, updateRepository } = useAppStore();
+  const { patToken, repositories, setRepositories, updateRepository, selectedRepositoryNames } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectAll, setSelectAll] = useState(false);
@@ -34,13 +32,18 @@ export const RepoSelectorAndConfig: React.FC = () => {
     setError(null);
 
     try {
-      const service = new AzureDevOpsService(patToken);
-      const repoList: Repository[] = [];
+      // Use selected repositories from settings, or fallback to default
+      const repoList = selectedRepositoryNames.length > 0 
+        ? selectedRepositoryNames 
+        : [DEFAULT_REPOSITORY];
 
-      for (const repoName of REPOSITORY_LIST) {
+      const service = new AzureDevOpsService(patToken);
+      const repos: Repository[] = [];
+
+      for (const repoName of repoList) {
         try {
           const version = await service.getLatestReleaseVersion(repoName);
-          repoList.push({
+          repos.push({
             id: repoName,
             name: repoName,
             currentVersion: version || 'No releases',
@@ -48,7 +51,7 @@ export const RepoSelectorAndConfig: React.FC = () => {
           });
         } catch (err) {
           console.error(`Error loading ${repoName}:`, err);
-          repoList.push({
+          repos.push({
             id: repoName,
             name: repoName,
             currentVersion: 'Error loading',
@@ -57,7 +60,7 @@ export const RepoSelectorAndConfig: React.FC = () => {
         }
       }
 
-      setRepositories(repoList);
+      setRepositories(repos);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load repositories');
     } finally {
@@ -68,7 +71,7 @@ export const RepoSelectorAndConfig: React.FC = () => {
   useEffect(() => {
     loadRepositoryVersions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedRepositoryNames]);
 
   const handleSelectAll = () => {
     const newSelectAll = !selectAll;
