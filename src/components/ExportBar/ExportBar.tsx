@@ -87,6 +87,28 @@ export const ExportBar: React.FC<{ currentStep: number }> = ({ currentStep }) =>
             // Collect work items from commits
             const workItemIds = new Set<string>();
             for (const commit of commits) {
+              // First, check if the commit object already has work items
+              if (commit.workItems && commit.workItems.length > 0) {
+                commit.workItems.forEach((wi) => workItemIds.add(wi.id));
+              }
+              
+              // Also try to extract work item IDs from commit message (for PRs)
+              // Azure DevOps merge commits often have format: "Merged PR 12345: description"
+              const prMatch = commit.comment.match(/Merged PR (\d+)/i);
+              if (prMatch) {
+                workItemIds.add(prMatch[1]);
+              }
+              
+              // Also check for work item references like #12345 or AB#12345
+              const wiMatches = commit.comment.matchAll(/#(\d+)|AB#(\d+)/gi);
+              for (const match of wiMatches) {
+                const id = match[1] || match[2];
+                if (id) {
+                  workItemIds.add(id);
+                }
+              }
+              
+              // Fallback: try the API call to get linked work items
               const ids = await service.getCommitWorkItems(repo.id, commit.commitId);
               ids.forEach((id) => workItemIds.add(id));
             }
